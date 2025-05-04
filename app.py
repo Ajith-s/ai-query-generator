@@ -157,7 +157,7 @@ You're an expert data analyst. You are given a natural language question and two
 {natural_question}
 """)
 
-temperature = st.slider("Model temperature", 0.0, 1.5, 0.7, step=0.1)
+
 
 def generate_visualization(df, label):
     if not isinstance(df, pd.DataFrame):
@@ -175,17 +175,24 @@ def generate_visualization(df, label):
     else:
         st.dataframe(df)
 
+# Add a model selection dropdown
+model_option = st.selectbox("Select the model", ["gpt-3.5-turbo", "gpt-4"])
+
+# Add a temperature slider
+temperature = st.slider("Model temperature", 0.0, 1.5, 0.7, step=0.1)
+
+
 if st.button("💬 Generate SQL Queries"):
     def messages(prompt):
         return [{"role": "user", "content": prompt}]
 
     response_a = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=model_option,  # Use the selected model
         messages=messages(prompt_a),
         temperature=temperature
     )
     response_b = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model=model_option,  # Use the selected model
         messages=messages(prompt_b),
         temperature=temperature
     )
