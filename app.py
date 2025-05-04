@@ -15,10 +15,28 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # Firebase initialization
+# if not firebase_admin._apps:
+#     cred_path = os.path.join(os.path.dirname(__file__), "firebase_service_account.json")
+#     cred = credentials.Certificate(cred_path)
+#     firebase_admin.initialize_app(cred)
+# db = firestore.client()
+
+#for adding secrets to streamlit
 if not firebase_admin._apps:
-    cred_path = os.path.join(os.path.dirname(__file__), "firebase_service_account.json")
-    cred = credentials.Certificate(cred_path)
+    cred = credentials.Certificate({
+        "type": st.secrets["firebase"]["type"],
+        "project_id": st.secrets["firebase"]["project_id"],
+        "private_key_id": st.secrets["firebase"]["private_key_id"],
+        "private_key": st.secrets["firebase"]["private_key"],
+        "client_email": st.secrets["firebase"]["client_email"],
+        "client_id": st.secrets["firebase"]["client_id"],
+        "auth_uri": st.secrets["firebase"]["auth_uri"],
+        "token_uri": st.secrets["firebase"]["token_uri"],
+        "auth_provider_x509_cert_url": st.secrets["firebase"]["auth_provider_x509_cert_url"],
+        "client_x509_cert_url": st.secrets["firebase"]["client_x509_cert_url"],
+    })
     firebase_admin.initialize_app(cred)
+
 db = firestore.client()
 
 # IP-based rate limiting (max 5/day)
@@ -91,14 +109,14 @@ con.register('reviews', reviews)
 
 st.title("🔍 AI SQL Generator and Comparison Tool")
 st.markdown("""
-Write a natural language data question, and compare how two prompts generate SQL queries against it.
+Ask a question based on the tables below, and compare how two prompts generate SQL queries against it.
 """)
 
 natural_question = st.text_input("Enter your question (e.g., 'Which product had the highest total sales?')")
 
 # Table preview
-if 'shown_table' not in st.session_state:
-    st.session_state.shown_table = False
+if "last_selected_table" not in st.session_state:
+    st.session_state.last_selected_table = None
 
 table_options = {
     "users": users,
@@ -108,11 +126,15 @@ table_options = {
     "reviews": reviews
 }
 table_names = list(table_options.keys())
-selected_table = st.selectbox("📂 Select a table to preview", table_names)
-if not st.session_state.shown_table:
-    st.dataframe(table_options[selected_table])
-    st.session_state.shown_table = True
 
+selected_table = st.selectbox("📂 Select a table to preview", table_names)
+
+# Show table if it's newly selected or first time
+if st.session_state.last_selected_table != selected_table:
+    st.dataframe(table_options[selected_table])
+    st.session_state.last_selected_table = selected_table
+
+    
 # Schema hint (used internally only)
 schema_hint = """
 Table schemas:
